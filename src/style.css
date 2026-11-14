@@ -164,3 +164,153 @@ h1, h2, h3, p { margin-top: 0; }
   .next-button { padding: 0 7px; font-size: 7px; }
   .market-heading h2 { font-size: 18px; }
 }
+
+/* v1.1 gameplay/UI adjustments: shared daily prices, daily market rotation and round timer */
+.brand-title { font-size: 14px; }
+.brand-subtitle, .topbar-note { font-size: 11px; }
+.panel-eyebrow, .welcome-kicker { font-size: 11px; }
+.day-pill { font-size: 11px; }
+.day-caption { font-size: 12px; }
+.intel-heading { font-size: 10px; }
+.intel-text { font-size: 14px; }
+.intel-foot { font-size: 10px; }
+.item-category, .stock-count { font-size: 9px; }
+.item-identity h3 { font-size: 13px; }
+.item-identity p { font-size: 9px; }
+.price-row { font-size: 10px; }
+.price-row strong { font-size: 12px; }
+.buy-button, .sell-button { font-size: 9px; }
+.warehouse-item-main strong { font-size: 12px; }
+.warehouse-item-main small { font-size: 9px; }
+
+.app-shell.is-playing {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+.app-shell.is-playing .topbar,
+.app-shell.is-playing .app-footer { flex: 0 0 auto; }
+.app-shell.is-playing .main-content { display: flex; flex: 1 1 auto; min-height: 0; }
+.app-shell.is-playing .game-screen {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+.market-panel { flex: 1 1 auto; min-height: 0; overflow: hidden; }
+.market-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  align-content: start;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(217, 173, 107, .35) transparent;
+}
+.market-price { color: var(--gold-bright); }
+.daily-limits {
+  display: flex;
+  justify-content: space-between;
+  gap: 5px;
+  padding-top: 5px;
+  border-top: 1px solid rgba(216, 194, 151, .07);
+  color: #8f9c93;
+  font-size: 9px;
+}
+.daily-limits strong { color: #d7e2d5; }
+.sell-capacity-note {
+  display: block;
+  min-height: 13px;
+  margin-top: 5px;
+  color: #9ab2a0;
+  font-size: 8px;
+  line-height: 1.3;
+}
+.market-empty {
+  grid-column: 1 / -1;
+  padding: 24px;
+  color: var(--muted);
+  text-align: center;
+}
+.round-timer-card {
+  min-width: 104px;
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  padding: 6px 10px;
+  border: 1px solid rgba(217, 173, 107, .23);
+  border-radius: 11px;
+  background: rgba(217, 173, 107, .07);
+}
+.timer-label {
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .13em;
+}
+.round-timer-card strong {
+  color: var(--gold-bright);
+  font: 800 20px/1.1 var(--serif);
+  font-variant-numeric: tabular-nums;
+}
+.round-timer-card small {
+  color: #87948b;
+  font-size: 8px;
+  white-space: nowrap;
+}
+.round-timer-card.is-urgent {
+  border-color: rgba(219, 117, 92, .5);
+  background: rgba(119, 48, 37, .22);
+}
+.round-timer-card.is-urgent strong { color: #f0a58f; }
+
+@media (max-width: 650px) {
+  .app-shell.is-playing { padding: 0 9px 5px; }
+  .app-shell.is-playing .topbar { min-height: 52px; }
+  .app-shell.is-playing .app-footer { min-height: 20px; padding-top: 4px; font-size: 7px; }
+  .app-shell.is-playing .game-screen { gap: 7px; padding: 7px 0 2px; }
+  .game-status-row { min-height: 48px; gap: 7px; }
+  .round-timer-card { min-width: 68px; padding: 4px 5px; }
+  .timer-label { font-size: 7px; }
+  .round-timer-card strong { font-size: 16px; }
+  .round-timer-card small { display: none; }
+  .wallet-card { min-width: 104px; padding: 6px 7px; }
+  .wallet-card strong { font-size: 13px; }
+  .intel-grid { gap: 6px; }
+  .intel-card { min-height: 100px; padding: 8px; }
+  .intel-heading { font-size: 9px; }
+  .intel-text { font-size: 12px; line-height: 1.35; }
+  .intel-foot { font-size: 9px; }
+  .market-panel { padding: 8px; }
+  .market-heading h2 { font-size: 21px; }
+  .market-legend { margin: 7px 0; font-size: 9px; }
+  .market-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .item-card { padding: 7px 6px; }
+  .item-identity { gap: 5px; min-height: 34px; margin: 4px 0; }
+  .item-icon { width: 27px; height: 27px; flex-basis: 27px; font-size: 18px; }
+  .item-identity h3 { font-size: 11px; }
+  .item-identity p { font-size: 8px; }
+  .item-category, .stock-count { font-size: 7px; }
+  .price-row { font-size: 8px; padding: 3px 0; }
+  .price-row strong { font-size: 9px; }
+  .daily-limits { font-size: 7px; }
+  .buy-button { min-height: 28px; margin-top: 5px; font-size: 7px; gap: 3px; }
+  .sell-capacity-note { min-height: 11px; font-size: 7px; }
+  .warehouse-panel { min-height: 82px; flex: 0 0 82px; }
+  .warehouse-heading { margin-bottom: 4px; }
+  .warehouse-heading h2 { font-size: 17px; }
+  .warehouse-hint { max-width: 48%; overflow: hidden; font-size: 7px; text-overflow: ellipsis; }
+  .warehouse-track { min-height: 55px; }
+  .warehouse-item { flex-basis: 190px; padding: 6px; }
+  .warehouse-item-main strong { font-size: 10px; }
+  .warehouse-item-main small { font-size: 7px; }
+  .sell-button { min-width: 48px; width: 48px; min-height: 27px; }
+}
+
+@media (max-width: 370px) {
+  .app-shell.is-playing { padding-right: 6px; padding-left: 6px; }
+  .market-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .wallet-card { min-width: 96px; }
+  .round-timer-card { min-width: 62px; }
+  .intel-text { font-size: 11px; }
+}

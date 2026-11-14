@@ -7,6 +7,7 @@ import {
   createNewGame,
   getMaxBuyQuantity,
   getMaxSellQuantity,
+  getRoundDurationSeconds,
   sellItem
 } from './game/gameEngine.js';
 import { readLeaderboard, saveBestRecord } from './storage/leaderboard.js';
@@ -22,6 +23,9 @@ let gameState = null;
 let quantityDialog = null;
 let leaderboard = readLeaderboard();
 let phaserGame = null;
+let roundTimerId = null;
+let roundDeadline = 0;
+let isAdvancingRound = false;
 
 function startPhaser() {
   phaserGame = new Phaser.Game({
@@ -60,6 +64,8 @@ function renderLeaderboard(target, records = leaderboard, highlightName = '') {
 }
 
 function showWelcome() {
+  stopRoundTimer();
+  $('#app').classList.remove('is-playing');
   $('#welcome-screen').classList.remove('hidden');
   $('#game-screen').classList.add('hidden');
   $('#topbar-right').innerHTML = '<span class="topbar-note">15 ngày · 1 cơ hội làm giàu</span>';
@@ -78,8 +84,43 @@ function beginGame(name) {
   quantityDialog = null;
   $('#welcome-screen').classList.add('hidden');
   $('#game-screen').classList.remove('hidden');
+  $('#app').classList.add('is-playing');
   $('#topbar-right').innerHTML = `<span class="player-chip">✦ ${escapeHtml(gameState.playerName)}</span>`;
+  startRoundTimer();
   renderGame();
+}
+
+function formatTimer(seconds) {
+  const safeSeconds = Math.max(0, Math.floor(seconds));
+  const minutes = Math.floor(safeSeconds / 60);
+  const remainder = safeSeconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`;
+}
+
+function renderRoundTimer() {
+  const remaining = Math.max(0, Math.ceil((roundDeadline - Date.now()) / 1000));
+  const timerValue = $('#timer-value');
+  const timerCard = $('#round-timer-card');
+  if (timerValue) timerValue.textContent = formatTimer(remaining);
+  if (timerCard) timerCard.classList.toggle('is-urgent', remaining <= 10);
+  return remaining;
+}
+
+function stopRoundTimer() {
+  if (roundTimerId !== null) {
+    window.clearInterval(roundTimerId);
+    roundTimerId = null;
+  }
+}
+
+function startRoundTimer() {
+  stopRoundTimer();
+  roundDeadline = Date.now() + getRoundDurationSeconds() * 1000;
+  renderRoundTimer();
+  roundTimerId = window.setInterval(() => {
+    const remaining = renderRoundTimer();
+    if (remaining <= 0) goToNextRound('timeout');
+  }, 200);
 }
 
 function renderGame() {
@@ -111,19 +152,28 @@ function renderGame() {
     $('#notice-foot').textContent = 'Chỉ có 4 ngày trong mỗi ván xuất hiện thông báo.';
   }
 
-  $('#market-grid').innerHTML = ITEMS.map((item) => {
+  const dailyItems = gameState.availableItemIds
+    .map((itemId) => ITEMS.find((item) => item.id === itemId))
+    .filter(Boolean);
+  $('#market-count').textContent = `${dailyItems.length}/${ITEMS.length} mặt hàng hôm nay`;
+  $('#market-grid').innerHTML = dailyItems.map((item) => {
     const quote = gameState.market[item.id];
+    const buyLimit = getMaxBuyQuantity(gameState, item.id);
+    const sellLimit = getMaxSellQuantity(gameState, item.id);
     const soldOut = quote.remainingStock <= 0;
-    const affordable = getMaxBuyQuantity(gameState, item.id) > 0;
     return `
       <article class="item-card ${soldOut ? 'is-sold-out' : ''}">
         <div class="item-card-top"><span class="item-category">${escapeHtml(item.category)}</span><span class="stock-count">${soldOut ? 'HẾT HÀNG' : `CÒN ${quote.remainingStock}`}</span></div>
         <div class="item-identity"><span class="item-icon">${item.icon}</span><div><h3>${escapeHtml(item.name)}</h3><p>${money(item.basePrice)} <span>· giá gốc</span></p></div></div>
-        <div class="price-row"><span>Giá mua</span><strong class="buy-price">${money(quote.buyPrice)}</strong></div>
-        <div class="price-row"><span>Giá bán lại</span><strong class="sell-price">${money(quote.sellPrice)}</strong></div>
-        <button class="buy-button" type="button" data-action="open-buy" data-item-id="${item.id}" ${soldOut || !affordable ? 'disabled' : ''}>${soldOut ? 'ĐÃ BÁN HẾT' : !affordable ? 'KHÔNG ĐỦ VỐN' : 'MUA HÀNG'} <span>＋</span></button>
+        <div class="price-row"><span>Giá chung mua / bán</span><strong class="market-price">${money(quote.price)}</strong></div>
+        <div class="daily-limits"><span>Quầy: <strong>${quote.remainingStock}</strong></span><span>Chợ mua: <strong>${quote.remainingDemand}</strong></span></div>
+        <button class="buy-button" type="button" data-action="open-buy" data-item-id="${item.id}" ${buyLimit < 1 ? 'disabled' : ''}>${soldOut ? 'HẾT HÀNG' : buyLimit < 1 ? 'KHÔNG ĐỦ VỐN' : 'MUA HÀNG'} <span>＋</span></button>
+        <span class="sell-capacity-note">${sellLimit > 0 ? `Chợ đang mua tối đa ${sellLimit} món từ bạn` : 'Chợ chưa có nhu cầu mua thêm'}</span>
       </article>`;
   }).join('');
+  if (!dailyItems.length) {
+    $('#market-grid').innerHTML = '<div class="market-empty">Hôm nay không có mặt hàng nào được mở giao dịch.</div>';
+  }
 
   const ownedItems = ITEMS.filter((item) => (gameState.inventory[item.id] ?? 0) > 0);
   const totalUnits = ownedItems.reduce((sum, item) => sum + gameState.inventory[item.id], 0);
@@ -134,15 +184,18 @@ function renderGame() {
     $('#warehouse-track').innerHTML = ownedItems.map((item) => {
       const quote = gameState.market[item.id];
       const quantity = gameState.inventory[item.id];
+      const sellLimit = getMaxSellQuantity(gameState, item.id);
+      const sellLabel = !quote.available ? 'Không giao dịch hôm nay' : quote.remainingDemand <= 0 ? 'Chợ đã đủ hàng' : `${sellLimit} món có thể bán hôm nay`;
       return `
         <article class="warehouse-item">
-          <div class="warehouse-item-main"><span class="warehouse-item-icon">${item.icon}</span><div><strong>${escapeHtml(item.name)}</strong><small>${quantity} đơn vị · ${money(quote.sellPrice)}/món</small></div></div>
-          <button type="button" class="sell-button" data-action="open-sell" data-item-id="${item.id}">BÁN <span>↗</span></button>
+          <div class="warehouse-item-main"><span class="warehouse-item-icon">${item.icon}</span><div><strong>${escapeHtml(item.name)}</strong><small>${quantity} món · ${money(quote.price)}/món · ${sellLabel}</small></div></div>
+          <button type="button" class="sell-button" data-action="open-sell" data-item-id="${item.id}" ${sellLimit < 1 ? 'disabled' : ''}>BÁN <span>↗</span></button>
         </article>`;
     }).join('');
   }
 
   $('#next-round-button').textContent = gameState.day === GAME_CONFIG.totalRounds ? 'KẾT SỔ VÁN CHƠI ✓' : 'SANG NGÀY TIẾP →';
+  renderRoundTimer();
 }
 
 function getDialogLimit() {
@@ -158,7 +211,7 @@ function renderQuantityDialog() {
   const quote = gameState.market[quantityDialog.itemId];
   if (!item || !quote) return;
   const buying = quantityDialog.action === 'buy';
-  const unitPrice = buying ? quote.buyPrice : quote.sellPrice;
+  const unitPrice = quote.price;
   const limit = getDialogLimit();
   quantityDialog.quantity = Math.max(1, Math.min(limit || 1, Math.floor(quantityDialog.quantity) || 1));
   const total = quantityDialog.quantity * unitPrice;
@@ -166,16 +219,16 @@ function renderQuantityDialog() {
   $('#modal-icon').textContent = item.icon;
   $('#modal-kicker').textContent = buying ? 'MUA HÀNG TỪ CỬA HÀNG' : 'BÁN HÀNG TỪ KHO';
   $('#modal-title').textContent = item.name;
-  $('#modal-price-line').innerHTML = `${buying ? 'Giá mua' : 'Giá bán'} mỗi món: <strong>${money(unitPrice)}</strong>`;
+  $('#modal-price-line').innerHTML = `Giá chung hôm nay (mua và bán): <strong>${money(unitPrice)}</strong>`;
   $('#quantity-input').value = String(quantityDialog.quantity);
   $('#quantity-input').max = String(limit);
-  $('#quantity-limit').textContent = buying ? `Tối đa ${limit} món (theo vốn và tồn kho)` : `Đang có ${limit} món trong kho`;
+  $('#quantity-limit').textContent = buying ? `Tối đa ${limit} món (theo vốn và lượng quầy)` : `Tối đa ${limit} món (theo kho và nhu cầu chợ)`;
   $('#trade-total-label').textContent = buying ? 'Tổng thanh toán' : 'Tiền nhận được';
   $('#trade-total-value').textContent = money(total);
   $('#confirm-trade-button').textContent = buying ? 'XÁC NHẬN MUA HÀNG' : 'XÁC NHẬN BÁN HÀNG';
   $('#confirm-trade-button').disabled = limit < 1;
   $('#modal-error').textContent = limit < 1
-    ? buying ? 'Bạn không đủ tiền hoặc cửa hàng đã hết hàng.' : 'Bạn không còn mặt hàng này trong kho.'
+    ? buying ? 'Bạn không đủ tiền hoặc hôm nay quầy không còn hàng.' : 'Bạn không còn hàng hoặc hôm nay chợ không thu mua mặt hàng này.'
     : '';
   $('#trade-modal').classList.remove('hidden');
 }
@@ -215,6 +268,9 @@ function confirmTrade() {
 }
 
 function completeGame() {
+  stopRoundTimer();
+  quantityDialog = null;
+  $('#trade-modal').classList.add('hidden');
   const result = saveBestRecord(gameState.playerName, gameState.finalScore);
   leaderboard = result.leaderboard;
   $('#result-player').textContent = `Thương gia ${gameState.playerName} đã hoàn thành hành trình.`;
@@ -233,14 +289,24 @@ function completeGame() {
   $('#result-modal').classList.remove('hidden');
 }
 
-function goToNextRound() {
-  if (!gameState || gameState.status !== 'active') return;
+function goToNextRound(reason = 'manual') {
+  if (!gameState || gameState.status !== 'active' || isAdvancingRound) return;
+  isAdvancingRound = true;
+  stopRoundTimer();
+  closeTradeDialog();
   const result = advanceRound(gameState);
   if (result.finished) {
     completeGame();
   } else {
+    startRoundTimer();
     renderGame();
+    if (reason === 'timeout') {
+      $('#timer-status').textContent = 'Tự động sang ngày mới';
+    } else {
+      $('#timer-status').textContent = 'Thời gian của vòng';
+    }
   }
+  isAdvancingRound = false;
 }
 
 function handleClick(event) {
@@ -286,18 +352,18 @@ function handleInput(event) {
   const limit = getDialogLimit();
   quantityDialog.quantity = Math.max(1, Math.min(limit || 1, Number.isFinite(inputValue) ? inputValue : 1));
   const itemQuote = gameState.market[quantityDialog.itemId];
-  const unitPrice = quantityDialog.action === 'buy' ? itemQuote.buyPrice : itemQuote.sellPrice;
+  const unitPrice = itemQuote.price;
   $('#trade-total-value').textContent = money(quantityDialog.quantity * unitPrice);
   $('#quantity-limit').textContent = quantityDialog.action === 'buy'
-    ? `Tối đa ${limit} món (theo vốn và tồn kho)`
-    : `Đang có ${limit} món trong kho`;
+    ? `Tối đa ${limit} món (theo vốn và lượng quầy)`
+    : `Tối đa ${limit} món (theo kho và nhu cầu chợ)`;
 }
 
 $('#start-form').addEventListener('submit', (event) => {
   event.preventDefault();
   beginGame($('#player-name').value);
 });
-$('#next-round-button').addEventListener('click', goToNextRound);
+$('#next-round-button').addEventListener('click', () => goToNextRound('manual'));
 $('#app').addEventListener('click', handleClick);
 $('#trade-modal').addEventListener('click', (event) => {
   if (event.target.id === 'trade-modal') closeTradeDialog();

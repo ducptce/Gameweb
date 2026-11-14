@@ -7,7 +7,8 @@ export const GAME_CONFIG = {
   initialCash: 10_000,
   totalRounds: 15,
   noticesPerGame: 4,
-  sellPriceRatio: 0.84,
+  dailyAvailableItemCountRange: [6, 10],
+  roundDurationSeconds: 60,
   dailyPriceMin: 0.84,
   dailyPriceMax: 1.16,
   leaderboardKey: 'moonlit-merchant-leaderboard-v1'

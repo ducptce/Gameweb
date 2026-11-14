@@ -6,8 +6,8 @@
     <meta name="theme-color" content="#111a20" />
     <meta name="description" content="Trò chơi thương gia: đọc tin đồn, nắm bắt thông báo và kinh doanh qua 15 ngày." />
     <title>Thương Hội Ánh Trăng</title>
-    <script type="module" crossorigin src="/Gameweb/assets/index-R19IY7mK.js"></script>
-    <link rel="stylesheet" crossorigin href="/Gameweb/assets/index-CqI1xuaf.css">
+    <script type="module" crossorigin src="/Gameweb/assets/index-SH9DS6UU.js"></script>
+    <link rel="stylesheet" crossorigin href="/Gameweb/assets/index-DIZkwjw3.css">
   </head>
   <body>
     <div id="phaser-backdrop" aria-hidden="true"></div>
@@ -52,6 +52,11 @@
               <div class="day-line"><span class="day-pill" id="day-pill">NGÀY 01 / 15</span><span class="day-caption" id="day-caption">Phiên chợ vừa mở cửa</span></div>
               <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
             </div>
+            <div class="round-timer-card" id="round-timer-card" aria-live="off">
+              <span class="timer-label">THỜI GIAN</span>
+              <strong id="timer-value">01:00</strong>
+              <small id="timer-status">Thời gian của vòng</small>
+            </div>
             <div class="wallet-card">
               <span class="wallet-icon">◈</span>
               <div><span class="wallet-label">TIỀN MẶT</span><strong id="cash-value">10.000 xu</strong></div>
@@ -76,14 +81,14 @@
               <div><div class="panel-eyebrow">MUA VÀO KHI GIÁ THẤP</div><h2>Phiên chợ <span>hàng hóa</span></h2></div>
               <button class="primary-button next-button" id="next-round-button" type="button">SANG NGÀY TIẾP <span>→</span></button>
             </div>
-            <div class="market-legend"><span><i class="legend-dot buy-dot"></i> Giá mua</span><span><i class="legend-dot sell-dot"></i> Giá bán lại</span><span class="stock-legend">Nguồn hàng có giới hạn</span></div>
+            <div class="market-legend"><span><i class="legend-dot buy-dot"></i> Một mức giá chung khi mua / bán</span><span class="stock-legend" id="market-count">0/15 mặt hàng hôm nay</span></div>
             <div class="market-grid" id="market-grid"></div>
           </section>
 
           <section class="warehouse-panel">
             <div class="warehouse-heading">
               <div><div class="panel-eyebrow">TÀI SẢN ĐANG NẮM GIỮ</div><h2>Kho hàng <span id="warehouse-count">0 món</span></h2></div>
-              <div class="warehouse-hint">Kéo ngang để xem thêm <span>↔</span></div>
+              <div class="warehouse-hint">Kéo ngang để xem thêm · Chỉ bán khi chợ thu mua <span>↔</span></div>
             </div>
             <div class="warehouse-track" id="warehouse-track"></div>
           </section>

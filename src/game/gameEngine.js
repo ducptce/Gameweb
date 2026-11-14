@@ -12,10 +12,46 @@ function shuffled(items, rng) {
   return result;
 }
 
+function validRange(range, fallback) {
+  if (!Array.isArray(range) || range.length < 2) return fallback;
+  const min = Math.floor(Number(range[0]));
+  const max = Math.floor(Number(range[1]));
+  if (!Number.isFinite(min) || !Number.isFinite(max) || min < 0 || max < min) return fallback;
+  return [min, max];
+}
+
+/**
+ * GAME_CONFIG.roundDurationSeconds is intentionally optional so projects using
+ * the previous gameData.js keep working. Default round duration is 60 seconds.
+ */
+export function getRoundDurationSeconds() {
+  const configured = Number(GAME_CONFIG.roundDurationSeconds ?? 60);
+  return Number.isFinite(configured) && configured > 0
+    ? Math.max(1, Math.floor(configured))
+    : 60;
+}
+
+function getAvailableItemCount(rng) {
+  // Configure this in gameData.js with dailyAvailableItemCountRange: [min, max].
+  const fallback = [6, Math.min(10, ITEMS.length)];
+  const [configuredMin, configuredMax] = validRange(
+    GAME_CONFIG.dailyAvailableItemCountRange,
+    fallback
+  );
+  const min = Math.min(ITEMS.length, Math.max(1, configuredMin));
+  const max = Math.min(ITEMS.length, Math.max(min, configuredMax));
+  return randomInt(min, max, rng);
+}
+
 function createRoundSchedule(rng) {
-  const selectedNotices = shuffled(NOTIFICATIONS, rng).slice(0, GAME_CONFIG.noticesPerGame);
+  const noticeCount = Math.min(
+    Math.max(0, Math.floor(Number(GAME_CONFIG.noticesPerGame) || 0)),
+    Math.max(0, GAME_CONFIG.totalRounds - 1),
+    NOTIFICATIONS.length
+  );
+  const selectedNotices = shuffled(NOTIFICATIONS, rng).slice(0, noticeCount);
   const possibleDays = Array.from({ length: GAME_CONFIG.totalRounds - 1 }, (_, index) => index + 2);
-  const noticeDays = shuffled(possibleDays, rng).slice(0, GAME_CONFIG.noticesPerGame).sort((a, b) => a - b);
+  const noticeDays = shuffled(possibleDays, rng).slice(0, noticeCount).sort((a, b) => a - b);
 
   const rumorsByDay = Array(GAME_CONFIG.totalRounds + 1).fill(null);
   const noticesByDay = Array(GAME_CONFIG.totalRounds + 1).fill(null);
@@ -44,30 +80,54 @@ function createRoundSchedule(rng) {
   return { rumorsByDay, noticesByDay };
 }
 
-function buildMarket(rng, previousMarket = null, modifiers = {}) {
+/**
+ * Every item gets a daily market quote, but only a random subset is tradable.
+ * `price` is the one shared buy/sell price for that item during this day.
+ * `remainingStock` limits player purchases from the shop.
+ * `remainingDemand` limits player sales to the market's customers.
+ */
+function buildDailyMarket(rng, modifiers = {}, featuredItemIds = []) {
+  const availableCount = getAvailableItemCount(rng);
+  const selected = shuffled(ITEMS, rng).slice(0, availableCount).map((item) => item.id);
+  // Keep the daily selection random, while ensuring today's rumor/notice goods can be traded.
+  const featured = [...new Set(featuredItemIds.filter((id) => ITEMS.some((item) => item.id === id)))];
+  for (const featuredId of featured) {
+    if (selected.includes(featuredId)) continue;
+    let replaceIndex = -1;
+    for (let index = selected.length - 1; index >= 0; index -= 1) {
+      if (!featured.includes(selected[index])) {
+        replaceIndex = index;
+        break;
+      }
+    }
+    if (replaceIndex >= 0) selected[replaceIndex] = featuredId;
+  }
+  const availableItemIds = selected;
+  const availableSet = new Set(availableItemIds);
   const market = {};
 
   for (const item of ITEMS) {
     const baseFactor = randomBetween(GAME_CONFIG.dailyPriceMin, GAME_CONFIG.dailyPriceMax, rng);
     const modifier = modifiers[item.id] ?? 1;
-    const buyPrice = Math.max(1, Math.round(item.basePrice * baseFactor * modifier));
-    const previousStock = previousMarket?.[item.id];
-    const stockRange = item.stockRange;
+    const price = Math.max(1, Math.round(item.basePrice * baseFactor * modifier));
+    const available = availableSet.has(item.id);
+    const stockRange = validRange(item.stockRange, [1, 5]);
+    // Optional per-item override; when omitted, demand uses the same range as shelf stock.
+    const demandRange = validRange(item.sellDemandRange, stockRange);
 
     market[item.id] = {
-      buyPrice,
-      sellPrice: Math.max(1, Math.round(buyPrice * GAME_CONFIG.sellPriceRatio)),
-      totalStock: previousStock?.totalStock ?? randomInt(stockRange[0], stockRange[1], rng),
-      remainingStock: previousStock?.remainingStock ?? randomInt(stockRange[0], stockRange[1], rng)
+      price,
+      available,
+      totalStock: available ? randomInt(stockRange[0], stockRange[1], rng) : 0,
+      remainingStock: 0,
+      totalDemand: available ? randomInt(demandRange[0], demandRange[1], rng) : 0,
+      remainingDemand: 0
     };
-
-    // Keep totalStock and remainingStock consistent when a new market is generated.
-    if (!previousStock) {
-      market[item.id].totalStock = market[item.id].remainingStock;
-    }
+    market[item.id].remainingStock = market[item.id].totalStock;
+    market[item.id].remainingDemand = market[item.id].totalDemand;
   }
 
-  return market;
+  return { market, availableItemIds };
 }
 
 export function createNewGame(playerName, rng = Math.random) {
@@ -75,13 +135,15 @@ export function createNewGame(playerName, rng = Math.random) {
   if (!cleanName) throw new Error('Please enter a merchant name.');
 
   const { rumorsByDay, noticesByDay } = createRoundSchedule(rng);
+  const { market, availableItemIds } = buildDailyMarket(rng, {}, [rumorsByDay[1]?.itemId]);
   return {
     playerName: cleanName,
     day: 1,
     cash: GAME_CONFIG.initialCash,
     initialCash: GAME_CONFIG.initialCash,
     inventory: Object.fromEntries(ITEMS.map((item) => [item.id, 0])),
-    market: buildMarket(rng),
+    market,
+    availableItemIds,
     rumorsByDay,
     noticesByDay,
     currentRumor: rumorsByDay[1],
@@ -95,12 +157,14 @@ export function createNewGame(playerName, rng = Math.random) {
 
 export function getMaxBuyQuantity(state, itemId) {
   const quote = state.market[itemId];
-  if (!quote) return 0;
-  return Math.max(0, Math.min(quote.remainingStock, Math.floor(state.cash / quote.buyPrice)));
+  if (!quote?.available || quote.remainingStock <= 0 || quote.price <= 0) return 0;
+  return Math.max(0, Math.min(quote.remainingStock, Math.floor(state.cash / quote.price)));
 }
 
 export function getMaxSellQuantity(state, itemId) {
-  return Math.max(0, state.inventory[itemId] ?? 0);
+  const quote = state.market[itemId];
+  if (!quote?.available || quote.remainingDemand <= 0) return 0;
+  return Math.max(0, Math.min(state.inventory[itemId] ?? 0, quote.remainingDemand));
 }
 
 export function buyItem(state, itemId, quantity) {
@@ -109,16 +173,17 @@ export function buyItem(state, itemId, quantity) {
   if (state.status !== 'active') return { ok: false, message: 'Ván chơi đã kết thúc.' };
   if (!item || !quote) return { ok: false, message: 'Không tìm thấy mặt hàng.' };
   if (!Number.isSafeInteger(quantity) || quantity < 1) return { ok: false, message: 'Số lượng phải là số nguyên lớn hơn 0.' };
-  if (quantity > quote.remainingStock) return { ok: false, message: 'Cửa hàng không còn đủ hàng.' };
+  if (!quote.available) return { ok: false, message: 'Mặt hàng này không được giao dịch hôm nay.' };
+  if (quantity > quote.remainingStock) return { ok: false, message: 'Cửa hàng không còn đủ hàng hôm nay.' };
 
-  const total = quantity * quote.buyPrice;
+  const total = quantity * quote.price;
   if (total > state.cash) return { ok: false, message: 'Bạn không đủ tiền để mua số lượng này.' };
 
   state.cash -= total;
   state.inventory[itemId] += quantity;
   quote.remainingStock -= quantity;
-  state.transactions.push({ day: state.day, action: 'buy', itemId, quantity, unitPrice: quote.buyPrice, total });
-  return { ok: true, message: `Đã mua ${quantity} ${item.name.toLowerCase()}.`, total };
+  state.transactions.push({ day: state.day, action: 'buy', itemId, quantity, unitPrice: quote.price, total });
+  return { ok: true, message: `Đã mua ${quantity} ${item.name.toLowerCase()}.`, total, unitPrice: quote.price };
 }
 
 export function sellItem(state, itemId, quantity) {
@@ -127,19 +192,23 @@ export function sellItem(state, itemId, quantity) {
   if (state.status !== 'active') return { ok: false, message: 'Ván chơi đã kết thúc.' };
   if (!item || !quote) return { ok: false, message: 'Không tìm thấy mặt hàng.' };
   if (!Number.isSafeInteger(quantity) || quantity < 1) return { ok: false, message: 'Số lượng phải là số nguyên lớn hơn 0.' };
+  if (!quote.available) return { ok: false, message: 'Chợ không giao dịch mặt hàng này hôm nay.' };
+  if (quantity > quote.remainingDemand) return { ok: false, message: 'Hôm nay chợ không còn đủ nhu cầu mua mặt hàng này.' };
   if (quantity > (state.inventory[itemId] ?? 0)) return { ok: false, message: 'Kho hàng không có đủ số lượng này.' };
 
-  const total = quantity * quote.sellPrice;
+  const total = quantity * quote.price;
   state.cash += total;
   state.inventory[itemId] -= quantity;
-  state.transactions.push({ day: state.day, action: 'sell', itemId, quantity, unitPrice: quote.sellPrice, total });
-  return { ok: true, message: `Đã bán ${quantity} ${item.name.toLowerCase()}.`, total };
+  quote.remainingDemand -= quantity;
+  state.transactions.push({ day: state.day, action: 'sell', itemId, quantity, unitPrice: quote.price, total });
+  return { ok: true, message: `Đã bán ${quantity} ${item.name.toLowerCase()}.`, total, unitPrice: quote.price };
 }
 
 export function calculateLiquidationValue(state) {
   return ITEMS.reduce((total, item) => {
     const quantity = state.inventory[item.id] ?? 0;
-    return total + quantity * (state.market[item.id]?.sellPrice ?? 0);
+    // Every good receives a current daily valuation even if it is not tradable today.
+    return total + quantity * (state.market[item.id]?.price ?? item.basePrice);
   }, 0);
 }
 
@@ -173,7 +242,6 @@ export function advanceRound(state, rng = Math.random) {
       modifiers[nextNotice.itemId] = (modifiers[nextNotice.itemId] ?? 1) * nextNotice.effectMultiplier;
       noticeDisplay = { type: 'confirmed', title: nextNotice.title, text: nextNotice.message, itemId: nextNotice.itemId };
     } else {
-      // A scheduled notice still appears on this day, but can officially debunk the rumor.
       noticeDisplay = { type: 'correction', title: 'Đính chính tin đồn', text: nextNotice.correction, itemId: nextNotice.itemId };
       delete modifiers[nextNotice.itemId];
     }
@@ -182,7 +250,9 @@ export function advanceRound(state, rng = Math.random) {
   state.day = nextDay;
   state.currentRumor = state.rumorsByDay[nextDay];
   state.currentNotice = noticeDisplay;
-  state.market = buildMarket(rng, state.market, modifiers);
+  const dailyMarket = buildDailyMarket(rng, modifiers, [state.currentRumor?.itemId, noticeDisplay?.itemId]);
+  state.market = dailyMarket.market;
+  state.availableItemIds = dailyMarket.availableItemIds;
 
   return { finished: false, state };
 }
