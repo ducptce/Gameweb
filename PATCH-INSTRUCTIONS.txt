@@ -1,0 +1,12 @@
+PATCH v1.2.1 — MOBILE LAYOUT + 25 RUMOR PROPOSAL
+
+1. Extract this ZIP into the root of your existing Gameweb repository.
+2. Allow it to overwrite index.html and src/style.css.
+3. The other files are additions (proposal, test and documentation).
+4. src/data/gameData.js is intentionally NOT included and remains under your control.
+5. The 25 new rumors are proposals only. To activate them, follow docs/rumor-expansion-25.md.
+6. Run: npm test
+7. Run: npm run build
+8. Commit and push to GitHub; the existing GitHub Actions workflow should rebuild and deploy the site.
+
+No changes were made to game rules, prices, trading limits, timer configuration, or leaderboard logic.

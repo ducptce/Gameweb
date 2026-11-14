@@ -13,10 +13,7 @@
       <header class="topbar">
         <div class="brand-lockup">
           <div class="brand-emblem">✦</div>
-          <div>
-            <div class="brand-title">THƯƠNG HỘI ÁNH TRĂNG</div>
-            <div class="brand-subtitle">SỔ TAY CỦA NHÀ BUÔN</div>
-          </div>
+          <div class="brand-title">THƯƠNG HỘI ÁNH TRĂNG</div>
         </div>
         <div class="topbar-right" id="topbar-right">
           <span class="topbar-note">15 ngày · 1 cơ hội làm giàu</span>
@@ -79,14 +76,18 @@
               <div><div class="panel-eyebrow">MUA VÀO KHI GIÁ THẤP</div><h2>Phiên chợ <span>hàng hóa</span></h2></div>
               <button class="primary-button next-button" id="next-round-button" type="button">SANG NGÀY TIẾP <span>→</span></button>
             </div>
-            <div class="market-legend"><span><i class="legend-dot buy-dot"></i> Một mức giá chung khi mua / bán</span><span class="stock-legend" id="market-count">0/15 mặt hàng hôm nay</span></div>
+            <div class="market-legend">
+              <span><i class="legend-dot buy-dot"></i> Giá mua = bán</span>
+              <span class="market-scroll-hint">↓ Cuộn để xem thêm</span>
+              <span class="stock-legend" id="market-count">0/15 mặt hàng hôm nay</span>
+            </div>
             <div class="market-grid" id="market-grid"></div>
           </section>
 
           <section class="warehouse-panel">
             <div class="warehouse-heading">
               <div><div class="panel-eyebrow">TÀI SẢN ĐANG NẮM GIỮ</div><h2>Kho hàng <span id="warehouse-count">0 món</span></h2></div>
-              <div class="warehouse-hint">Kéo ngang để xem thêm · Chỉ bán khi chợ thu mua <span>↔</span></div>
+              <div class="warehouse-hint">Cuộn để xem kho · Chỉ bán khi có mặt ở chợ <span>↕</span></div>
             </div>
             <div class="warehouse-track" id="warehouse-track"></div>
           </section>

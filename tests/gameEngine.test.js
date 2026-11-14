@@ -120,7 +120,12 @@ test('market listings and daily trade quantities are regenerated on each new rou
   const result = advanceRound(state, rng);
   assert.equal(result.finished, false);
   assert.equal(state.day, 2);
-  assert.ok(state.availableItemIds.length >= 6 && state.availableItemIds.length <= 10);
+
+  const [minItems, maxItems] = GAME_CONFIG.dailyAvailableItemCountRange;
+assert.ok(
+  state.availableItemIds.length >= minItems &&
+  state.availableItemIds.length <= maxItems
+);
   const secondDay = state.availableItemIds.join(',');
   const secondPrices = ITEMS.map((item) => state.market[item.id].price).join(',');
   assert.notEqual(secondDay, firstDay);
