@@ -64,23 +64,41 @@ test('every item has one shared daily price for buying, selling and end-of-game 
   assert.equal(state.transactions[0].unitPrice, state.transactions[1].unitPrice);
 });
 
-test('daily purchase supply and customer demand are separately limited', () => {
-  const state = createNewGame('Daily Capacity', fixedRandom);
-  const itemId = state.availableItemIds[0];
-  const quote = state.market[itemId];
-  const buyLimit = getMaxBuyQuantity(state, itemId);
-  assert.ok(buyLimit > 0);
-  assert.ok(buyLimit <= quote.remainingStock);
-  assert.equal(buyItem(state, itemId, quote.remainingStock + 1).ok, false);
+test('daily quantity is unlimited: buying is limited only by cash and selling only by inventory', () => {
+  const state = createNewGame('Unlimited Daily Trade', fixedRandom);
 
-  assert.equal(buyItem(state, itemId, 3).ok, true);
-  assert.equal(state.inventory[itemId], 3);
-  assert.ok(getMaxSellQuantity(state, itemId) <= quote.remainingDemand);
-  assert.equal(sellItem(state, itemId, quote.remainingDemand + 1).ok, false);
-  const sellResult = sellItem(state, itemId, 2);
+  // Find an available item with a valid daily price.
+  const itemId = state.availableItemIds.find((id) => {
+    return state.market[id]?.price > 0;
+  });
+
+  assert.ok(itemId, 'at least one tradable item should be available');
+
+  const unitPrice = state.market[itemId].price;
+
+  // Maximum purchase quantity must depend only on available cash.
+  const maxBuy = Math.floor(state.cash / unitPrice);
+
+  assert.equal(getMaxBuyQuantity(state, itemId), maxBuy);
+
+  // Buy all quantities affordable with current cash.
+  assert.equal(buyItem(state, itemId, maxBuy).ok, true);
+  assert.equal(state.inventory[itemId], maxBuy);
+  assert.equal(state.cash, 10_000 - maxBuy * unitPrice);
+
+  // Maximum selling quantity must depend only on inventory.
+  assert.equal(getMaxSellQuantity(state, itemId), maxBuy);
+
+  // Sell the entire inventory.
+  const sellResult = sellItem(state, itemId, maxBuy);
+
   assert.equal(sellResult.ok, true);
-  assert.equal(state.inventory[itemId], 1);
-  assert.equal(quote.remainingDemand, quote.totalDemand - 2);
+  assert.equal(state.inventory[itemId], 0);
+  assert.equal(state.cash, 10_000);
+
+  // No daily stock or demand limits should exist.
+  assert.equal('remainingStock' in state.market[itemId], false);
+  assert.equal('remainingDemand' in state.market[itemId], false);
 });
 
 test('goods not listed in the current day market cannot be bought or sold', () => {
@@ -108,8 +126,9 @@ test('market listings and daily trade quantities are regenerated on each new rou
   assert.notEqual(secondDay, firstDay);
   assert.notEqual(secondPrices, firstPrices);
   for (const itemId of state.availableItemIds) {
-    assert.ok(state.market[itemId].remainingStock >= 0);
-    assert.ok(state.market[itemId].remainingDemand >= 0);
+    assert.equal(state.market[itemId].available, true);
+    assert.equal('remainingStock' in state.market[itemId], false);
+    assert.equal('remainingDemand' in state.market[itemId], false);
   }
 });
 
@@ -144,6 +163,11 @@ test('each notice is paired with the rumor on the immediately preceding round', 
   }
 });
 
-test('round timeout defaults to 60 seconds without modifying gameData.js', () => {
-  assert.equal(getRoundDurationSeconds(), 60);
+test('round timeout respects gameData.js configuration', () => {
+    const expected = GAME_CONFIG.roundDurationSeconds ?? 60;
+
+    assert.equal(
+        getRoundDurationSeconds(),
+        Math.floor(Number(expected))
+    );
 });

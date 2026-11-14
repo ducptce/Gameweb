@@ -33,7 +33,7 @@ Push the project root (including `src/`, `package.json`, `vite.config.js` and `.
 - Start with 10,000 coins and play 15 rounds.
 - Every good has exactly one price per day. Buying and selling use the same `market[itemId].price`; there is no buy/sell spread.
 - Only a random subset of the 15 goods is listed each day. Unlisted goods cannot be bought or sold that day.
-- On a listed good, `remainingStock` limits how many units the shop can sell to the player. `remainingDemand` independently limits how many units the market's customers will buy from the player.
+- Listed goods have unlimited daily supply and demand. The player can buy as many units as current cash allows and sell as many units as currently owned in inventory.
 - When a rumor is relevant to the current or next notice, its linked product is kept tradable on that day so the event can be acted on. Other daily listings remain random.
 - All goods receive a daily price quote, including goods that are not listed. Unsold inventory is valued using the latest daily quote when the game ends.
 - Every round has a countdown. It auto-advances to the next day when the timer reaches zero. The default is 60 seconds; the value can be configured in `gameData.js`.
@@ -67,3 +67,12 @@ To add a new good, add an item object with a unique `id`, `name`, `icon`, `baseP
 ## Leaderboard limitation
 
 Scores are stored in browser `localStorage`. Records persist on the same browser/device, but they are not shared between players, browsers or phones. A truly global leaderboard requires a backend database and write API (for example Supabase or Firebase); GitHub Pages alone is static hosting.
+
+
+## v1.2 trading rule update
+
+- A tradable item has one daily price shared by buying and selling.
+- There are no daily per-item quantity caps. The player may buy as much as current cash allows and sell as much as current inventory contains.
+- `dailyAvailableItemCountRange` still controls how many different item types appear in the market each day. Items outside that day's selection cannot be traded until a later day.
+- `stockRange` in each item is now legacy/unused by the engine. It previously described the random daily shop quantity; because daily quantities are unlimited, it no longer affects gameplay. You may remove it from your own `gameData.js` if you wish, but it is not necessary for the game to run.
+- `dailyPriceMin` and `dailyPriceMax` are global random multipliers applied to each item's `basePrice` to generate that item's price for the day. They are price settings, not quantity settings.

@@ -83,8 +83,8 @@ function createRoundSchedule(rng) {
 /**
  * Every item gets a daily market quote, but only a random subset is tradable.
  * `price` is the one shared buy/sell price for that item during this day.
- * `remainingStock` limits player purchases from the shop.
- * `remainingDemand` limits player sales to the market's customers.
+ * Tradable goods have unlimited daily supply and demand; cash and inventory
+ * are the only quantity constraints on purchases and sales.
  */
 function buildDailyMarket(rng, modifiers = {}, featuredItemIds = []) {
   const availableCount = getAvailableItemCount(rng);
@@ -111,20 +111,9 @@ function buildDailyMarket(rng, modifiers = {}, featuredItemIds = []) {
     const modifier = modifiers[item.id] ?? 1;
     const price = Math.max(1, Math.round(item.basePrice * baseFactor * modifier));
     const available = availableSet.has(item.id);
-    const stockRange = validRange(item.stockRange, [1, 5]);
-    // Optional per-item override; when omitted, demand uses the same range as shelf stock.
-    const demandRange = validRange(item.sellDemandRange, stockRange);
-
-    market[item.id] = {
-      price,
-      available,
-      totalStock: available ? randomInt(stockRange[0], stockRange[1], rng) : 0,
-      remainingStock: 0,
-      totalDemand: available ? randomInt(demandRange[0], demandRange[1], rng) : 0,
-      remainingDemand: 0
-    };
-    market[item.id].remainingStock = market[item.id].totalStock;
-    market[item.id].remainingDemand = market[item.id].totalDemand;
+    // No daily quantity caps: tradable goods have unlimited shop supply and market demand.
+    // The player's cash and owned inventory are the only quantity constraints.
+    market[item.id] = { price, available };
   }
 
   return { market, availableItemIds };
@@ -157,14 +146,14 @@ export function createNewGame(playerName, rng = Math.random) {
 
 export function getMaxBuyQuantity(state, itemId) {
   const quote = state.market[itemId];
-  if (!quote?.available || quote.remainingStock <= 0 || quote.price <= 0) return 0;
-  return Math.max(0, Math.min(quote.remainingStock, Math.floor(state.cash / quote.price)));
+  if (!quote?.available || quote.price <= 0) return 0;
+  return Math.max(0, Math.floor(state.cash / quote.price));
 }
 
 export function getMaxSellQuantity(state, itemId) {
   const quote = state.market[itemId];
-  if (!quote?.available || quote.remainingDemand <= 0) return 0;
-  return Math.max(0, Math.min(state.inventory[itemId] ?? 0, quote.remainingDemand));
+  if (!quote?.available) return 0;
+  return Math.max(0, state.inventory[itemId] ?? 0);
 }
 
 export function buyItem(state, itemId, quantity) {
@@ -174,14 +163,11 @@ export function buyItem(state, itemId, quantity) {
   if (!item || !quote) return { ok: false, message: 'Không tìm thấy mặt hàng.' };
   if (!Number.isSafeInteger(quantity) || quantity < 1) return { ok: false, message: 'Số lượng phải là số nguyên lớn hơn 0.' };
   if (!quote.available) return { ok: false, message: 'Mặt hàng này không được giao dịch hôm nay.' };
-  if (quantity > quote.remainingStock) return { ok: false, message: 'Cửa hàng không còn đủ hàng hôm nay.' };
-
   const total = quantity * quote.price;
   if (total > state.cash) return { ok: false, message: 'Bạn không đủ tiền để mua số lượng này.' };
 
   state.cash -= total;
   state.inventory[itemId] += quantity;
-  quote.remainingStock -= quantity;
   state.transactions.push({ day: state.day, action: 'buy', itemId, quantity, unitPrice: quote.price, total });
   return { ok: true, message: `Đã mua ${quantity} ${item.name.toLowerCase()}.`, total, unitPrice: quote.price };
 }
@@ -193,13 +179,11 @@ export function sellItem(state, itemId, quantity) {
   if (!item || !quote) return { ok: false, message: 'Không tìm thấy mặt hàng.' };
   if (!Number.isSafeInteger(quantity) || quantity < 1) return { ok: false, message: 'Số lượng phải là số nguyên lớn hơn 0.' };
   if (!quote.available) return { ok: false, message: 'Chợ không giao dịch mặt hàng này hôm nay.' };
-  if (quantity > quote.remainingDemand) return { ok: false, message: 'Hôm nay chợ không còn đủ nhu cầu mua mặt hàng này.' };
   if (quantity > (state.inventory[itemId] ?? 0)) return { ok: false, message: 'Kho hàng không có đủ số lượng này.' };
 
   const total = quantity * quote.price;
   state.cash += total;
   state.inventory[itemId] -= quantity;
-  quote.remainingDemand -= quantity;
   state.transactions.push({ day: state.day, action: 'sell', itemId, quantity, unitPrice: quote.price, total });
   return { ok: true, message: `Đã bán ${quantity} ${item.name.toLowerCase()}.`, total, unitPrice: quote.price };
 }

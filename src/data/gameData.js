@@ -7,29 +7,29 @@ export const GAME_CONFIG = {
   initialCash: 10_000,
   totalRounds: 15,
   noticesPerGame: 4,
-  dailyAvailableItemCountRange: [6, 10],
-  roundDurationSeconds: 60,
+  dailyAvailableItemCountRange: [4, 7],
+  roundDurationSeconds: 100,
   dailyPriceMin: 0.84,
   dailyPriceMax: 1.16,
   leaderboardKey: 'moonlit-merchant-leaderboard-v1'
 };
 
 export const ITEMS = [
-  { id: 'iron', name: 'Sắt', icon: '⚒️', basePrice: 125, stockRange: [18, 32], category: 'Nguyên liệu' },
-  { id: 'gemstone', name: 'Đá quý', icon: '💎', basePrice: 520, stockRange: [4, 10], category: 'Quý hiếm' },
-  { id: 'wisteria', name: 'Hoa tử đằng', icon: '🪻', basePrice: 95, stockRange: [12, 24], category: 'Thảo mộc' },
-  { id: 'cake', name: 'Bánh ngọt', icon: '🍰', basePrice: 78, stockRange: [14, 28], category: 'Thực phẩm' },
-  { id: 'wheat', name: 'Lúa mì', icon: '🌾', basePrice: 48, stockRange: [20, 36], category: 'Nông sản' },
-  { id: 'tomato', name: 'Cà chua', icon: '🍅', basePrice: 38, stockRange: [18, 34], category: 'Nông sản' },
-  { id: 'salt', name: 'Muối', icon: '🧂', basePrice: 58, stockRange: [16, 30], category: 'Nguyên liệu' },
-  { id: 'herb', name: 'Dược thảo', icon: '🌿', basePrice: 118, stockRange: [9, 20], category: 'Thảo mộc' },
-  { id: 'silk', name: 'Lụa', icon: '🧵', basePrice: 235, stockRange: [7, 15], category: 'Vải vóc' },
-  { id: 'honey', name: 'Mật ong', icon: '🍯', basePrice: 102, stockRange: [10, 22], category: 'Thực phẩm' },
-  { id: 'leather', name: 'Da thuộc', icon: '👜', basePrice: 165, stockRange: [8, 18], category: 'Nguyên liệu' },
-  { id: 'crystal', name: 'Tinh thể phép', icon: '🔮', basePrice: 410, stockRange: [4, 9], category: 'Quý hiếm' },
-  { id: 'fish', name: 'Cá tươi', icon: '🐟', basePrice: 68, stockRange: [14, 26], category: 'Thực phẩm' },
-  { id: 'coffee', name: 'Cà phê', icon: '☕', basePrice: 142, stockRange: [8, 18], category: 'Thực phẩm' },
-  { id: 'candle', name: 'Nến thơm', icon: '🕯️', basePrice: 55, stockRange: [15, 28], category: 'Đồ gia dụng' }
+  { id: 'iron', name: 'Sắt', icon: '⚒️', basePrice: 125, category: 'Nguyên liệu' },
+  { id: 'gemstone', name: 'Đá quý', icon: '💎', basePrice: 520, category: 'Quý hiếm' },
+  { id: 'wisteria', name: 'Hoa tử đằng', icon: '🪻', basePrice: 95, category: 'Thảo mộc' },
+  { id: 'cake', name: 'Bánh ngọt', icon: '🍰', basePrice: 78, category: 'Thực phẩm' },
+  { id: 'wheat', name: 'Lúa mì', icon: '🌾', basePrice: 48, category: 'Nông sản' },
+  { id: 'tomato', name: 'Cà chua', icon: '🍅', basePrice: 38, category: 'Nông sản' },
+  { id: 'salt', name: 'Muối', icon: '🧂', basePrice: 58, category: 'Nguyên liệu' },
+  { id: 'herb', name: 'Dược thảo', icon: '🌿', basePrice: 118, category: 'Thảo mộc' },
+  { id: 'silk', name: 'Lụa', icon: '🧵', basePrice: 235, category: 'Vải vóc' },
+  { id: 'honey', name: 'Mật ong', icon: '🍯', basePrice: 102, category: 'Thực phẩm' },
+  { id: 'leather', name: 'Da thuộc', icon: '👜', basePrice: 165, category: 'Nguyên liệu' },
+  { id: 'crystal', name: 'Tinh thể phép', icon: '🔮', basePrice: 410, category: 'Quý hiếm' },
+  { id: 'fish', name: 'Cá tươi', icon: '🐟', basePrice: 68, category: 'Thực phẩm' },
+  { id: 'coffee', name: 'Cà phê', icon: '☕', basePrice: 142, category: 'Thực phẩm' },
+  { id: 'candle', name: 'Nến thơm', icon: '🕯️', basePrice: 55, category: 'Đồ gia dụng' }
 ];
 
 // A true rumor applies a small price movement on the following round.

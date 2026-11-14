@@ -159,16 +159,12 @@ function renderGame() {
   $('#market-grid').innerHTML = dailyItems.map((item) => {
     const quote = gameState.market[item.id];
     const buyLimit = getMaxBuyQuantity(gameState, item.id);
-    const sellLimit = getMaxSellQuantity(gameState, item.id);
-    const soldOut = quote.remainingStock <= 0;
     return `
-      <article class="item-card ${soldOut ? 'is-sold-out' : ''}">
-        <div class="item-card-top"><span class="item-category">${escapeHtml(item.category)}</span><span class="stock-count">${soldOut ? 'HẾT HÀNG' : `CÒN ${quote.remainingStock}`}</span></div>
+      <article class="item-card">
+        <div class="item-card-top"><span class="item-category">${escapeHtml(item.category)}</span></div>
         <div class="item-identity"><span class="item-icon">${item.icon}</span><div><h3>${escapeHtml(item.name)}</h3><p>${money(item.basePrice)} <span>· giá gốc</span></p></div></div>
-        <div class="price-row"><span>Giá chung mua / bán</span><strong class="market-price">${money(quote.price)}</strong></div>
-        <div class="daily-limits"><span>Quầy: <strong>${quote.remainingStock}</strong></span><span>Chợ mua: <strong>${quote.remainingDemand}</strong></span></div>
-        <button class="buy-button" type="button" data-action="open-buy" data-item-id="${item.id}" ${buyLimit < 1 ? 'disabled' : ''}>${soldOut ? 'HẾT HÀNG' : buyLimit < 1 ? 'KHÔNG ĐỦ VỐN' : 'MUA HÀNG'} <span>＋</span></button>
-        <span class="sell-capacity-note">${sellLimit > 0 ? `Chợ đang mua tối đa ${sellLimit} món từ bạn` : 'Chợ chưa có nhu cầu mua thêm'}</span>
+        <div class="price-row"><span>Giá mua / bán</span><strong class="market-price">${money(quote.price)}</strong></div>
+        <button class="buy-button" type="button" data-action="open-buy" data-item-id="${item.id}" ${buyLimit < 1 ? 'disabled' : ''}>${buyLimit < 1 ? 'KHÔNG ĐỦ VỐN' : 'MUA HÀNG'} <span>＋</span></button>
       </article>`;
   }).join('');
   if (!dailyItems.length) {
@@ -185,10 +181,9 @@ function renderGame() {
       const quote = gameState.market[item.id];
       const quantity = gameState.inventory[item.id];
       const sellLimit = getMaxSellQuantity(gameState, item.id);
-      const sellLabel = !quote.available ? 'Không giao dịch hôm nay' : quote.remainingDemand <= 0 ? 'Chợ đã đủ hàng' : `${sellLimit} món có thể bán hôm nay`;
       return `
         <article class="warehouse-item">
-          <div class="warehouse-item-main"><span class="warehouse-item-icon">${item.icon}</span><div><strong>${escapeHtml(item.name)}</strong><small>${quantity} món · ${money(quote.price)}/món · ${sellLabel}</small></div></div>
+          <div class="warehouse-item-main"><span class="warehouse-item-icon">${item.icon}</span><div><strong>${escapeHtml(item.name)}</strong><small>${quantity} món · ${money(quote.price)}/món</small></div></div>
           <button type="button" class="sell-button" data-action="open-sell" data-item-id="${item.id}" ${sellLimit < 1 ? 'disabled' : ''}>BÁN <span>↗</span></button>
         </article>`;
     }).join('');
@@ -222,13 +217,13 @@ function renderQuantityDialog() {
   $('#modal-price-line').innerHTML = `Giá chung hôm nay (mua và bán): <strong>${money(unitPrice)}</strong>`;
   $('#quantity-input').value = String(quantityDialog.quantity);
   $('#quantity-input').max = String(limit);
-  $('#quantity-limit').textContent = buying ? `Tối đa ${limit} món (theo vốn và lượng quầy)` : `Tối đa ${limit} món (theo kho và nhu cầu chợ)`;
+  $('#quantity-limit').textContent = buying ? `Tối đa ${limit} món (theo số tiền hiện có)` : `Tối đa ${limit} món (theo số lượng trong kho)`;
   $('#trade-total-label').textContent = buying ? 'Tổng thanh toán' : 'Tiền nhận được';
   $('#trade-total-value').textContent = money(total);
   $('#confirm-trade-button').textContent = buying ? 'XÁC NHẬN MUA HÀNG' : 'XÁC NHẬN BÁN HÀNG';
   $('#confirm-trade-button').disabled = limit < 1;
   $('#modal-error').textContent = limit < 1
-    ? buying ? 'Bạn không đủ tiền hoặc hôm nay quầy không còn hàng.' : 'Bạn không còn hàng hoặc hôm nay chợ không thu mua mặt hàng này.'
+    ? buying ? 'Bạn không đủ tiền để mua mặt hàng này.' : 'Kho hàng của bạn không còn mặt hàng này.'
     : '';
   $('#trade-modal').classList.remove('hidden');
 }
@@ -355,8 +350,8 @@ function handleInput(event) {
   const unitPrice = itemQuote.price;
   $('#trade-total-value').textContent = money(quantityDialog.quantity * unitPrice);
   $('#quantity-limit').textContent = quantityDialog.action === 'buy'
-    ? `Tối đa ${limit} món (theo vốn và lượng quầy)`
-    : `Tối đa ${limit} món (theo kho và nhu cầu chợ)`;
+    ? `Tối đa ${limit} món (theo số tiền hiện có)`
+    : `Tối đa ${limit} món (theo số lượng trong kho)`;
 }
 
 $('#start-form').addEventListener('submit', (event) => {
