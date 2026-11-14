@@ -1,47 +1,130 @@
-
 <!doctype html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0,
-          maximum-scale=1.0, user-scalable=no">
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#111a20" />
+    <meta name="description" content="Trò chơi thương gia: đọc tin đồn, nắm bắt thông báo và kinh doanh qua 15 ngày." />
+    <title>Thương Hội Ánh Trăng</title>
+  </head>
+  <body>
+    <div id="phaser-backdrop" aria-hidden="true"></div>
+    <div class="app-shell" id="app">
+      <header class="topbar">
+        <div class="brand-lockup">
+          <div class="brand-emblem">✦</div>
+          <div>
+            <div class="brand-title">THƯƠNG HỘI ÁNH TRĂNG</div>
+            <div class="brand-subtitle">SỔ TAY CỦA NHÀ BUÔN</div>
+          </div>
+        </div>
+        <div class="topbar-right" id="topbar-right">
+          <span class="topbar-note">15 ngày · 1 cơ hội làm giàu</span>
+        </div>
+      </header>
 
-    <meta name="theme-color" content="#18212b">
+      <main class="main-content">
+        <section class="welcome-screen" id="welcome-screen">
+          <div class="welcome-card panel">
+            <div class="welcome-kicker">MỘT CUỘC ĐỜI BUÔN BÁN</div>
+            <h1>Trở thành thương gia<br /><span>giàu có nhất vùng</span></h1>
+            <p class="welcome-copy">Bạn có 10.000 đồng vốn và 15 ngày để đọc vị thị trường. Hãy mua khi giá thấp, bán khi giá cao — nhưng đừng tin mọi lời đồn.</p>
+            <form id="start-form" class="start-form">
+              <label for="player-name">Tên thương gia</label>
+              <input id="player-name" name="playerName" maxlength="18" autocomplete="nickname" placeholder="Nhập tên của bạn..." required />
+              <button class="primary-button" type="submit">BẮT ĐẦU PHIÊN CHỢ <span>→</span></button>
+            </form>
+            <div class="rules-line"><span>✦</span> Vốn ban đầu: <strong>10.000 xu</strong><span>·</span> Thời lượng: <strong>15 vòng</strong></div>
+          </div>
+          <aside class="leaderboard-panel panel">
+            <div class="panel-eyebrow">NHỮNG NHÀ BUÔN HUYỀN THOẠI</div>
+            <h2>Bảng xếp hạng <span>TOP 5</span></h2>
+            <div id="welcome-leaderboard"></div>
+            <p class="local-note">Kỷ lục được lưu trên trình duyệt và thiết bị này.</p>
+          </aside>
+        </section>
 
-    <title>Strategy Game</title>
+        <section class="game-screen hidden" id="game-screen">
+          <div class="game-status-row">
+            <div class="day-progress-wrap">
+              <div class="day-line"><span class="day-pill" id="day-pill">NGÀY 01 / 15</span><span class="day-caption" id="day-caption">Phiên chợ vừa mở cửa</span></div>
+              <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+            </div>
+            <div class="wallet-card">
+              <span class="wallet-icon">◈</span>
+              <div><span class="wallet-label">TIỀN MẶT</span><strong id="cash-value">10.000 xu</strong></div>
+            </div>
+          </div>
 
-    <style>
-        * {
-            box-sizing: border-box;
-        }
+          <section class="intel-grid" aria-label="Thông tin thị trường">
+            <article class="intel-card rumor-card">
+              <div class="intel-heading"><span class="intel-icon">☁</span><span>TIN ĐỒN</span><span class="intel-tag">CHƯA KIỂM CHỨNG</span></div>
+              <p class="intel-text" id="rumor-text"></p>
+              <div class="intel-foot" id="rumor-foot">Lời đồn có thể đúng... hoặc hoàn toàn sai.</div>
+            </article>
+            <article class="intel-card notice-card" id="notice-card">
+              <div class="intel-heading"><span class="intel-icon">📜</span><span>THÔNG BÁO</span><span class="intel-tag official-tag" id="notice-tag">CHÍNH THỨC</span></div>
+              <p class="intel-text" id="notice-text"></p>
+              <div class="intel-foot" id="notice-foot">Chỉ có 4 ngày xuất hiện thông báo chính thức.</div>
+            </article>
+          </section>
 
-        html, body {
-            margin: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background: #18212b;
-            touch-action: none;
-        }
+          <section class="market-panel panel">
+            <div class="section-heading market-heading">
+              <div><div class="panel-eyebrow">MUA VÀO KHI GIÁ THẤP</div><h2>Phiên chợ <span>hàng hóa</span></h2></div>
+              <button class="primary-button next-button" id="next-round-button" type="button">SANG NGÀY TIẾP <span>→</span></button>
+            </div>
+            <div class="market-legend"><span><i class="legend-dot buy-dot"></i> Giá mua</span><span><i class="legend-dot sell-dot"></i> Giá bán lại</span><span class="stock-legend">Nguồn hàng có giới hạn</span></div>
+            <div class="market-grid" id="market-grid"></div>
+          </section>
 
-        #game-container {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+          <section class="warehouse-panel">
+            <div class="warehouse-heading">
+              <div><div class="panel-eyebrow">TÀI SẢN ĐANG NẮM GIỮ</div><h2>Kho hàng <span id="warehouse-count">0 món</span></h2></div>
+              <div class="warehouse-hint">Kéo ngang để xem thêm <span>↔</span></div>
+            </div>
+            <div class="warehouse-track" id="warehouse-track"></div>
+          </section>
+        </section>
+      </main>
 
-        canvas {
-            display: block;
-            touch-action: none;
-        }
-    </style>
-</head>
+      <footer class="app-footer"><span>THƯƠNG HỘI ÁNH TRĂNG</span><span>Khôn ngoan trong mua bán · Bình tĩnh trước lời đồn</span></footer>
+    </div>
 
-<body>
-    <div id="game-container"></div>
+    <div class="modal-backdrop hidden" id="trade-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="trade-modal panel">
+        <button class="modal-close" type="button" data-action="close-modal" aria-label="Đóng">×</button>
+        <div class="modal-product-icon" id="modal-icon">🪻</div>
+        <div class="panel-eyebrow" id="modal-kicker">GIAO DỊCH HÀNG HÓA</div>
+        <h2 id="modal-title">Hoa tử đằng</h2>
+        <p class="modal-price-line" id="modal-price-line"></p>
+        <div class="quantity-label">SỐ LƯỢNG</div>
+        <div class="quantity-control">
+          <button type="button" data-action="quantity-minus" aria-label="Giảm số lượng">−</button>
+          <input id="quantity-input" type="number" min="1" step="1" inputmode="numeric" value="1" />
+          <button type="button" data-action="quantity-plus" aria-label="Tăng số lượng">+</button>
+        </div>
+        <div class="quantity-presets"><button type="button" data-action="quantity-max">TỐI ĐA</button><span id="quantity-limit"></span></div>
+        <div class="trade-total"><span id="trade-total-label">Tổng thanh toán</span><strong id="trade-total-value">0 xu</strong></div>
+        <p class="modal-error" id="modal-error" aria-live="polite"></p>
+        <button class="primary-button confirm-button" id="confirm-trade-button" type="button">XÁC NHẬN GIAO DỊCH</button>
+      </div>
+    </div>
+
+    <div class="result-backdrop hidden" id="result-modal" role="dialog" aria-modal="true" aria-labelledby="result-title">
+      <div class="result-card panel">
+        <div class="result-spark">✦</div>
+        <div class="panel-eyebrow">KẾT THÚC 15 NGÀY KINH DOANH</div>
+        <h2 id="result-title">Sổ sách đã khép lại</h2>
+        <p class="result-player" id="result-player"></p>
+        <div class="result-score"><span>TỔNG TÀI SẢN CUỐI CÙNG</span><strong id="result-score">0 xu</strong></div>
+        <div class="result-breakdown" id="result-breakdown"></div>
+        <div class="result-record" id="result-record"></div>
+        <div class="result-leaderboard"><div class="panel-eyebrow">BẢNG XẾP HẠNG TOP 5</div><div id="result-leaderboard-list"></div></div>
+        <button class="primary-button confirm-button" type="button" data-action="play-again">CHƠI VÁN MỚI <span>↻</span></button>
+      </div>
+    </div>
+
     <script type="module" src="/src/main.js"></script>
-</body>
+  </body>
 </html>
