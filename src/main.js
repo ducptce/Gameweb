@@ -149,7 +149,7 @@ function renderGame() {
     noticeCard.classList.remove('notice-correction');
     $('#notice-tag').textContent = 'CHÍNH THỨC';
     $('#notice-text').textContent = 'Hôm nay không có thông báo chính thức. Hãy quan sát biến động giá và cân nhắc giao dịch.';
-    $('#notice-foot').textContent = 'Chỉ có 4 ngày trong mỗi ván xuất hiện thông báo.';
+    $('#notice-foot').textContent = `Chỉ có ${GAME_CONFIG.noticesPerGame} ngày trong mỗi ván xuất hiện thông báo.`;
   }
 
   const dailyItems = gameState.availableItemIds
